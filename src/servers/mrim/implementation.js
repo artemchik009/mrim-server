@@ -9,6 +9,7 @@ const BinaryConstructor = require('../../constructors/binary')
 const { MrimContainerHeader } = require('../../messages/mrim/container')
 const {
   processHello,
+  processLegacyLogin,
   processLogin,
   processLoginThree,
   processMessage,
@@ -145,11 +146,15 @@ function onData (socket, connectionId, logger, state, variables) {
 
 function onClose (socket, connectionId, logger, state, variables) {
   return async () => {
-    if (global.clients.length > 0) {
-      disconnectClient(connectionId, logger, state)
-      logger.debug(
-        `[${connectionId}] !!! connection closed for ${state.username}`
-      )
+    try {
+      if (global.clients.length > 0) {
+        disconnectClient(connectionId, logger, state)
+        logger.debug(
+          `[${connectionId}] !!! connection closed for ${state.username}`
+        )
+      }
+    } catch (e) {
+      logger.debug(`[${connectionId}] seems like the client did harakiri: ${e.message} ${e.stack}`)
     }
   }
 }
@@ -160,11 +165,11 @@ async function disconnectClient (connectionId, logger, state) {
   )
 
   const sameUserSessionsCount = global.clients.filter(
-    ({ username }) => username === state.username
+    ({ username, domain }) => username === state.username && domain === state.domain
   ).length
 
   // TODO mikhail КОСТЫЛЬ КОСТЫЛЬ КОСТЫЛЬ
-  if (clientIndex && sameUserSessionsCount <= 1) {
+  if (clientIndex >= 0 && sameUserSessionsCount <= 1) {
     await processChangeStatus(
       {
         protocolVersionMajor: state.protocolVersionMajor,
@@ -184,9 +189,7 @@ async function disconnectClient (connectionId, logger, state) {
       null
     )
 
-    if (clientIndex !== -1) {
-      global.clients.splice(clientIndex, 1)
-    }
+    global.clients.splice(clientIndex, 1)
 
     clearTimeout(timeoutTimer[connectionId])
     delete timeoutTimer[connectionId]
@@ -204,6 +207,16 @@ async function processPacket (
   switch (containerHeader.packetCommand) {
     case MrimMessageCommands.HELLO:
       return processHello(containerHeader, connectionId, logger)
+    // MRIM <= 1.7
+    case MrimMessageCommands.LOGIN:
+      return processLegacyLogin(
+        containerHeader,
+        packetData,
+        connectionId,
+        logger,
+        state,
+        variables
+      )
     // MRIM <= 1.20
     case MrimMessageCommands.LOGIN2:
       return processLogin(
@@ -304,7 +317,7 @@ async function processPacket (
         state,
         variables
       )
-    case MrimMessageCommands.CALL:
+    case MrimMessageCommands.CALL2:
       return processCall(
         containerHeader,
         packetData,

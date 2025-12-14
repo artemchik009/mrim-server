@@ -11,6 +11,7 @@ const MrimMessageCommands = {
   LOGIN_ACK: 0x1004,
   LOGIN_REJ: 0x1005,
   PING: 0x1006,
+  LOGIN: 0x1003,
   LOGIN2: 0x1038,
   LOGIN3: 0x1078,
   USER_INFO: 0x1015,
@@ -42,7 +43,8 @@ const MrimMessageCommands = {
   // File Transfer & VoIP
   FILE_TRANSFER: 0x1026,
   FILE_TRANSFER_ACK: 0x1027,
-  CALL: 0x1049,
+  CALL2: 0x1049,
+  CALL: 0x1031,
   CALL_ACK: 0x1032,
   // Logout
   LOGOUT: 0x1013
@@ -85,6 +87,7 @@ const MrimMessageFlags = {
   MULTICAST: 0x1000,
   WAKEUP: 0x4000,
   FLASH: 0x8000,
+  v1p16: 0x100000, // unicode convertion
 }
 
 const MrimMessageErrors = {
@@ -97,7 +100,7 @@ const MrimMessageErrors = {
 const MrimCallStatus = {
   DENY: 0x0,
   ACCEPT: 0x1,
-  PROXY: 0x4,
+  PROXY: 0x4
 }
 
 module.exports = { MrimMessageCommands, MrimStatus, MrimContactFlags, MrimMessageFlags, MrimMessageErrors }
